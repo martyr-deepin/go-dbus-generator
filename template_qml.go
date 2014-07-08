@@ -31,10 +31,10 @@ public:
     }
 
 {{range .Properties}}
-    Q_PROPERTY(QVariant {{.Name}} READ __get_{{.Name}}__ {{if PropWritable .}}WRITE __set_{{.Name}}__{{end}})
-    QVariant __get_{{.Name}}__() { return unmarsh(property("{{.Name}}")); }
-    {{if PropWritable .}}void __set_{{.Name}}__(const QVariant &v) { setProperty("{{.Name}}", v); }{{end}}
-    {{end}}
+    Q_PROPERTY(QDBusVariant {{.Name}} READ __get_{{.Name}}__ {{if PropWritable .}}WRITE __set_{{.Name}}__{{end}})
+    QDBusVariant __get_{{.Name}}__() { return unmarsh(property("{{.Name}}")).value<QDBusVariant>(); }
+    {{if PropWritable .}}void __set_{{.Name}}__(const QDBusVariant &v) { setProperty("{{.Name}}", QVariant::fromValue(v)); }{{end}}
+{{end}}
 
 Q_SIGNALS:{{range .Signals}}
     void {{.Name}}({{range $i, $e := .Args}}{{if ne $i 0}},{{end}}{{getQType $e.Type}} {{$e.Name}}{{end}});{{end}}
@@ -98,11 +98,11 @@ public:
     Q_PROPERTY(QVariant {{Lower .Name}} READ __get_{{.Name}}__ {{if PropWritable .}}WRITE __set_{{.Name}}__{{end}} NOTIFY __{{Lower .Name}}Changed__){{end}}
 
     //Property read methods{{range .Properties}}
-    const QVariant __get_{{.Name}}__() { return unmarsh(m_ifc->property("{{.Name}}")); }{{end}}
+    const QVariant __get_{{.Name}}__() { return unmarsh(m_ifc->__get_{{.Name}}__().variant()); }{{end}}
     //Property set methods :TODO check access{{range .Properties}}{{if PropWritable .}}
     void __set_{{.Name}}__(const QVariant &v) {
 	    QVariant marshedValue = marsh(QDBusArgument(), v, "{{.Type}}");
-	    m_ifc->setProperty("{{.Name}}", marshedValue);
+	    m_ifc->__set_{{.Name}}__(QDBusVariant(marshedValue));
 	    Q_EMIT __{{Lower .Name}}Changed__(marshedValue);
     }{{end}}{{end}}
 
