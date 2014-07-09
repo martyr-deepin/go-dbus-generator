@@ -34,7 +34,7 @@ public:
 		QLatin1String("org.freedesktop.DBus.Properties"),
 		QLatin1String("Get"));
 	msg << interface() << QString::fromUtf8(name);
-	QDBusMessage reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, 10);
+	QDBusMessage reply = connection().call(msg, QDBus::Block, 10);
 	if (reply.type() != QDBusMessage::ReplyMessage) {
 	    qDebug () << QDBusError(reply) << "at " << service() << path() << interface() << name;
 	    return QVariant();
