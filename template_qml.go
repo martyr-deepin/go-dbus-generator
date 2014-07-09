@@ -29,10 +29,29 @@ public:
 		    qDebug() << "Create {{ExportName}} remote object failed : " << lastError().message();
 	    }
     }
+    QVariant fetchProperty(const char* name) {
+	QDBusMessage msg = QDBusMessage::createMethodCall(service(), path(),
+		QLatin1String("org.freedesktop.DBus.Properties"),
+		QLatin1String("Get"));
+	msg << interface() << QString::fromUtf8(name);
+	QDBusMessage reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, 10);
+	if (reply.type() != QDBusMessage::ReplyMessage) {
+	    qDebug () << QDBusError(reply) << "at " << service() << path() << interface() << name;
+	    return QVariant();
+	}
+	if (reply.signature() != QLatin1String("v")) {
+	    QString errmsg = QLatin1String("Invalid signature org.freedesktop.DBus.Propertyies in return from call to ");
+	    qDebug () << QDBusError(QDBusError::InvalidSignature, errmsg.arg(reply.signature()));
+	    return QVariant();
+	}
+
+	QVariant value = qvariant_cast<QDBusVariant>(reply.arguments().at(0)).variant();
+	return value;
+    }
 
 {{range .Properties}}
     Q_PROPERTY(QDBusVariant {{.Name}} READ __get_{{.Name}}__ {{if PropWritable .}}WRITE __set_{{.Name}}__{{end}})
-    QDBusVariant __get_{{.Name}}__() { return unmarsh(property("{{.Name}}")).value<QDBusVariant>(); }
+    QDBusVariant __get_{{.Name}}__() { return QDBusVariant(fetchProperty("{{.Name}}")); }
     {{if PropWritable .}}void __set_{{.Name}}__(const QDBusVariant &v) { setProperty("{{.Name}}", QVariant::fromValue(v)); }{{end}}
 {{end}}
 
