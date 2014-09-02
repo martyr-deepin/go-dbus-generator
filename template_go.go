@@ -46,14 +46,14 @@ type {{ExportName}} struct {
 	{{.Name}} *dbusProperty{{ExportName}}{{.Name}}{{end}}
 }
 {{if or .Properties .Signals}}
-func ({{OBJ_NAME}} {{ExportName}}) _createSignalChan() <-chan *dbus.Signal {
+func ({{OBJ_NAME}} *{{ExportName}}) _createSignalChan() <-chan *dbus.Signal {
 	{{OBJ_NAME}}.signalsLocker.Lock()
 	ch := getBus().Signal()
 	{{OBJ_NAME}}.signals[ch] = struct{}{}
 	{{OBJ_NAME}}.signalsLocker.Unlock()
 	return ch
 }
-func ({{OBJ_NAME}} {{ExportName}}) _deleteSignalChan(ch <-chan *dbus.Signal) {
+func ({{OBJ_NAME}} *{{ExportName}}) _deleteSignalChan(ch <-chan *dbus.Signal) {
 	{{OBJ_NAME}}.signalsLocker.Lock()
 	delete({{OBJ_NAME}}.signals, ch)
 	getBus().DetachSignal(ch)
@@ -72,7 +72,7 @@ func Destroy{{ExportName}}(obj *{{ExportName}}) {
 
 {{$obj_name := .Name}}
 {{range .Methods }}
-func ({{OBJ_NAME}} {{ExportName }}) {{Normalize .Name}} ({{GetParamterInsProto .Args}}) ({{GetParamterOutsProto .Args}} {{with GetParamterOuts .Args}},{{end}}_err error) {
+func ({{OBJ_NAME}} *{{ExportName }}) {{Normalize .Name}} ({{GetParamterInsProto .Args}}) ({{GetParamterOutsProto .Args}} {{with GetParamterOuts .Args}},{{end}}_err error) {
 	_err = {{OBJ_NAME}}.core.Call("{{$obj_name}}.{{.Name}}", 0{{GetParamterNames .Args}}).Store({{GetParamterOuts .Args}})
 	if _err != nil {
 		fmt.Println(_err)
@@ -82,7 +82,7 @@ func ({{OBJ_NAME}} {{ExportName }}) {{Normalize .Name}} ({{GetParamterInsProto .
 {{end}}
 
 {{range .Signals}}
-func ({{OBJ_NAME}} {{ExportName}}) Connect{{.Name}}(callback func({{GetParamterOutsProto .Args}})) func() {
+func ({{OBJ_NAME}} *{{ExportName}}) Connect{{.Name}}(callback func({{GetParamterOutsProto .Args}})) func() {
 	__conn.BusObject().Call("org.freedesktop.DBus.AddMatch", 0,
 		"type='signal',path='"+string({{OBJ_NAME}}.Path)+"', interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
 	sigChan := {{OBJ_NAME}}._createSignalChan()
