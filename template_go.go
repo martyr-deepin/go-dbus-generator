@@ -39,35 +39,31 @@ type {{ExportName}} struct {
 	DestName string
 	core *dbus.Object
 {{if or .Properties .Signals}}
-	signals map[chan *dbus.Signal]bool
+	signals map[<-chan *dbus.Signal]struct{}
 	signalsLocker sync.Mutex
 {{end}}
 	{{range .Properties}}
 	{{.Name}} *dbusProperty{{ExportName}}{{.Name}}{{end}}
 }
 {{if or .Properties .Signals}}
-func ({{OBJ_NAME}} {{ExportName}}) _createSignalChan() chan *dbus.Signal {
+func ({{OBJ_NAME}} {{ExportName}}) _createSignalChan() <-chan *dbus.Signal {
 	{{OBJ_NAME}}.signalsLocker.Lock()
-	ch := make(chan *dbus.Signal, 30)
-	getBus().Signal(ch)
-	{{OBJ_NAME}}.signals[ch] = false
+	ch := getBus().Signal()
+	{{OBJ_NAME}}.signals[ch] = struct{}{}
 	{{OBJ_NAME}}.signalsLocker.Unlock()
 	return ch
 }
-func ({{OBJ_NAME}} {{ExportName}}) _deleteSignalChan(ch chan *dbus.Signal) {
+func ({{OBJ_NAME}} {{ExportName}}) _deleteSignalChan(ch <-chan *dbus.Signal) {
 	{{OBJ_NAME}}.signalsLocker.Lock()
 	delete({{OBJ_NAME}}.signals, ch)
 	getBus().DetachSignal(ch)
-	close(ch)
 	{{OBJ_NAME}}.signalsLocker.Unlock()
 }
 func Destroy{{ExportName}}(obj *{{ExportName}}) {
 	obj.signalsLocker.Lock()
 	for ch, _ := range obj.signals {
 		getBus().DetachSignal(ch)
-		close(ch)
 	}
-	obj.signals = make(map[chan *dbus.Signal]bool)
 	obj.signalsLocker.Unlock()
 	{{range .Properties}}
 	obj.{{.Name}}.Reset(){{end}}
@@ -156,7 +152,7 @@ func New{{ExportName}}(destName string, path dbus.ObjectPath) (*{{ExportName}}, 
 
 	core := getBus().Object(destName, path)
 
-	obj := &{{ExportName}}{Path:path, DestName:destName, core:core{{if or .Signals .Properties}},signals:make(map[chan *dbus.Signal]bool){{end}}}
+	obj := &{{ExportName}}{Path:path, DestName:destName, core:core{{if or .Signals .Properties}},signals:make(map[<-chan *dbus.Signal]struct{}){{end}}}
 	{{range .Properties}}
 	obj.{{.Name}} = &dbusProperty{{ExportName}}{{.Name}}{&property.BaseObserver{}, core}{{end}}
 {{with .Properties}}
