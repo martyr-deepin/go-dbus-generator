@@ -2,12 +2,18 @@
 
 export GOPATH := /usr/share/gocode
 
+ifndef USE_GCCGO
+  GOBUILD = go build
+else
+  GOBUILD = go build -compiler gccgo
+endif
+
 %:
 	dh $@
 
 override_dh_auto_build:
 	mkdir -pv out
-	go build -o out/dbus-generator
+	${GOBUILD} -o out/dbus-generator
 
 override_dh_auto_install:
 	install -Dm755 out/dbus-generator debian/dbus-generator/usr/bin/dbus-generator
