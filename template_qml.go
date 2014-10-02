@@ -192,7 +192,7 @@ class DBusPlugin: public QQmlExtensionPlugin
 
 var __PROJECT_TEMPL_QML = `
 TEMPLATE=lib
-CONFIC += plugin
+CONFIG += plugin
 QT += qml dbus
 
 TARGET = {{PkgName}}
