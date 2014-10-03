@@ -7,6 +7,9 @@ func TestQType(t *testing.T) {
 	if getQType("u") != "uint" {
 		t.Fatal(` "u" != "uint" `)
 	}
+	if getQType("ah") != "QList<quint32 >" {
+		t.Fatal(` "ah" != "QList<quint32 >" `)
+	}
 	if getQType("au") != "QList<uint >" {
 		t.Fatal(` "au" != "QList<uint >" ` + getQType("au"))
 	}

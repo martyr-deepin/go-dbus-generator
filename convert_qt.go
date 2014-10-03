@@ -9,6 +9,7 @@ var _sig2QType = map[byte]string{
 	'q': "ushort",
 	'i': "int",
 	'u': "uint",
+	'h': "quint32",
 	'x': "qlonglong",
 	't': "qulonglong",
 	'd': "double",
