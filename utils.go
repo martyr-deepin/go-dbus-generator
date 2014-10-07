@@ -54,14 +54,14 @@ func isMemberChar(c rune) bool {
 		(c >= 'a' && c <= 'z') || c == '_'
 }
 
-func getMember(str string) string {
+func getMember(target BindingTarget, str string) string {
 	fields := strings.Split(str, ".")
 	if len(fields) < 1 {
 		return ""
 	}
 	r := fields[len(fields)-1]
 	if isValidMember(r) {
-		if INFOS.Config.Target == GoLang {
+		if target == GoLang {
 			r = strings.ToLower(r)
 		}
 		return r
@@ -78,15 +78,6 @@ func getQMLPkgName(str string) (r string) {
 		r += upper(field)
 	}
 	return
-}
-
-func interfaceToObjectName(ifc_name string) string {
-	for _, ifc := range INFOS.Interfaces {
-		if ifc.Interface == ifc_name {
-			return ifc.ObjectName
-		}
-	}
-	return ""
 }
 
 // com.deepin.DBus.ObjectPathConvert.Property for properties

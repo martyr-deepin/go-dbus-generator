@@ -4,16 +4,9 @@
 	"InputDir": "example-xml",
 	"BusType": "System",
 	"DestName": "org.freedesktop.NetworkManager",
-	"Target": "QML"
+	"Target": "GoLang"
     },
     "Interfaces": [
-    {
-	"Interface": "org.freedesktop.NetworkManager",
-	"OutFile": "manager",
-	"XMLFile": "nm-manager.xml",
-	"ObjectName": "Manager",
-	"TestPath": "/org/freedesktop/NetworkManager"
-    },
     {
 	"Interface": "org.freedesktop.NetworkManager.AccessPoint",
 	"OutFile": "manager",

@@ -1,12 +1,13 @@
 package main
 
 import "fmt"
-import "os"
 import "log"
+import "os"
 import "os/exec"
 import "path"
 import "strings"
 import "text/template"
+import "pkg.linuxdeepin.com/lib/dbus"
 
 var __IFC_TEMPLATE_INIT_QML = `/*This file is auto generate by pkg.linuxdeepin.com/dbus-generator. Don't edit it*/
 #include <QtDBus>
@@ -242,71 +243,72 @@ Item { {{range .Interfaces}}
 }
 `
 
-func renderQMLProject() {
-	writer, err := os.Create(path.Join(INFOS.Config.OutputDir, "tt.pro"))
+func renderQMLProject(outputDir string, infos *Infos) {
+	writer, err := os.Create(path.Join(outputDir, "tt.pro"))
 	if err != nil {
 		panic(err)
 	}
 	template.Must(template.New("main").Funcs(template.FuncMap{
-		"BusType": func() string { return INFOS.Config.BusType },
-		"PkgName": func() string { return INFOS.Config.PkgName },
+		"BusType": func() string { return infos.BusType() },
+		"PkgName": func() string { return infos.PackageName() },
 		"GetModules": func() map[string]string {
 			r := make(map[string]string)
-			for _, ifc := range INFOS.Interfaces {
+			for _, ifc := range infos.ListInterfaces() {
 				r[ifc.OutFile] = ifc.OutFile
 			}
 			return r
 		},
-	}).Parse(__PROJECT_TEMPL_QML)).Execute(writer, INFOS)
+	}).Parse(__PROJECT_TEMPL_QML)).Execute(writer, infos)
 	writer.Close()
+	renderTestQML(infos)
 }
 
-func testQML() {
-	pkgName := INFOS.Config.PkgName
+func renderTestQML(infos *Infos) {
+	pkgName := infos.PackageName()
 	if pkgName == "" {
-		pkgName = getQMLPkgName("DBus." + INFOS.Config.DestName)
+		pkgName = getQMLPkgName("DBus." + infos.DestName())
 	}
-	os.MkdirAll(INFOS.Config.OutputDir+"/"+strings.Replace(pkgName, ".", "/", -1), 0755)
-	cmd_str := fmt.Sprintf("cd %s && ln -sv %s lib && qmake", INFOS.Config.OutputDir, strings.Replace(pkgName, ".", "/", -1))
+	os.MkdirAll(infos.OutputDir()+"/"+strings.Replace(pkgName, ".", "/", -1), 0755)
+	cmd_str := fmt.Sprintf("cd %s && ln -sv %s lib && qmake", infos.OutputDir(), strings.Replace(pkgName, ".", "/", -1))
 	cmd := exec.Command("bash", "-c", cmd_str)
 	err := cmd.Run()
 	if err != nil {
 		log.Fatal("Run: " + cmd_str + " failed(Did you have an valid qmake?) testQML code will not generated!")
 	}
-	qmldir, err := os.Create(path.Join(INFOS.Config.OutputDir, "lib", "qmldir"))
+	qmldir, err := os.Create(path.Join(infos.OutputDir(), "lib", "qmldir"))
 	if err != nil {
 		panic(err)
 	}
 
 	moduleName := "DBus"
-	for _, f := range strings.Split(INFOS.Config.DestName, ".") {
+	for _, f := range strings.Split(infos.DestName(), ".") {
 		moduleName += "." + upper(f)
 	}
 
 	qmldir.WriteString("module " + moduleName + "\n")
-	qmldir.WriteString("plugin " + INFOS.Config.PkgName)
+	qmldir.WriteString("plugin " + infos.PackageName())
 	qmldir.Close()
 
-	writer, err := os.Create(path.Join(INFOS.Config.OutputDir, "test.qml"))
+	writer, err := os.Create(path.Join(infos.OutputDir(), "test.qml"))
 	if err != nil {
 		panic(err)
 	}
 	template.Must(template.New("qmltest").Funcs(template.FuncMap{
 		"Lower":            lower,
-		"GetInterfaceInfo": GetInterfaceInfo,
-		"BusType":          func() string { return INFOS.Config.BusType },
+		"GetInterfaceInfo": func(ifc _Interface) dbus.InterfaceInfo { return GetInterfaceInfo(infos.InputDir(), ifc) },
+		"BusType":          func() string { return infos.BusType() },
 		"PkgName":          func() string { return pkgName },
 		"Ifc2Obj":          ifc2obj,
 		"GetModules": func() map[string]string {
 			r := make(map[string]string)
-			for _, ifc := range INFOS.Interfaces {
+			for _, ifc := range infos.ListInterfaces() {
 				r[ifc.OutFile] = ifc.OutFile
 			}
 			return r
 		},
-	}).Parse(__TEST_QML)).Execute(writer, INFOS)
-
+	}).Parse(__TEST_QML)).Execute(writer, infos)
 }
+
 func qtPropertyFilter(s string) string {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "QMap") {
@@ -336,8 +338,8 @@ var sigToQtType = map[string]string{
 	"h": "uint",
 }
 
-func getQtSignaturesType() (sigs map[string]string) {
-	sigs = make(map[string]string)
+func getQtSignaturesType(info *Infos) map[string]string {
+	sigs := make(map[string]string)
 	var store func(string)
 	store = func(sig string) {
 		if v, ok := sigToQtType[sig]; ok {
@@ -367,8 +369,8 @@ func getQtSignaturesType() (sigs map[string]string) {
 			panic(fmt.Sprintf("parse signature failed:%q\n", sig))
 		}
 	}
-	for _, ifc := range INFOS.Interfaces {
-		info := GetInterfaceInfo(ifc)
+	for _, ifc := range info.ListInterfaces() {
+		info := GetInterfaceInfo(info.InputDir(), ifc)
 		for _, m := range info.Methods {
 			for _, a := range m.Args {
 				store(a.Type)

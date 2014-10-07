@@ -6,63 +6,48 @@ import "io"
 import "log"
 import "strings"
 
-var TEMPLs = map[string]string{
-	"GLOBAL_pyqt":   __GLOBAL_TEMPLATE_PyQt,
-	"GLOBAL_golang": __GLOBAL_TEMPLATE_GoLang,
-	"GLOBAL_qml":    __GLOBAL_TEMPLATE_QML,
+//TODO: try removing dependent on variable of infos
 
-	"IFC_pyqt":   __IFC_TEMPLATE_PyQt,
-	"IFC_golang": __IFC_TEMPLATE_GoLang,
-	"IFC_qml":    __IFC_TEMPLATE_QML,
-
-	"IFC_INIT_pyqt":   __IFC_TEMPLATE_INIT_PyQt,
-	"IFC_INIT_golang": __IFC_TEMPLATE_INIT_GoLang,
-	"IFC_INIT_qml":    __IFC_TEMPLATE_INIT_QML,
-}
-
-func renderMain(writer io.Writer) {
+func renderMain(writer io.Writer, tpl string, infos *Infos) {
 	template.Must(template.New("main").Funcs(template.FuncMap{
 		"Lower":   lower,
 		"Upper":   upper,
-		"BusType": func() string { return INFOS.Config.BusType },
-		"PkgName": func() string { return INFOS.Config.PkgName },
+		"BusType": func() string { return infos.BusType() },
+		"PkgName": func() string { return infos.PackageName() },
 		"GetModules": func() map[string]string {
 			r := make(map[string]string)
-			for _, ifc := range INFOS.Interfaces {
+			for _, ifc := range infos.ListInterfaces() {
 				r[ifc.OutFile] = ifc.OutFile
 			}
 			return r
 		},
-		"GetQtSignaturesType": getQtSignaturesType,
-	}).Parse(TEMPLs["GLOBAL_"+INFOS.Config.Target])).Execute(writer, INFOS)
+		"GetQtSignaturesType": func() map[string]string { return getQtSignaturesType(infos) },
+	}).Parse(tpl)).Execute(writer, infos)
 }
 
-func renderInterfaceInit(writer io.Writer) {
+func renderInterfaceInit(writer io.Writer, tpl string, infos *Infos) {
 	template.Must(template.New("IfcInit").Funcs(template.FuncMap{
-		"BusType":    func() string { return INFOS.Config.BusType },
-		"PkgName":    func() string { return INFOS.Config.PkgName },
+		"BusType":    func() string { return infos.BusType() },
+		"PkgName":    func() string { return infos.PackageName() },
 		"HasSignals": func() bool { return true },
-	}).Parse(TEMPLs["IFC_INIT_"+INFOS.Config.Target])).Execute(writer, nil)
+	}).Parse(tpl)).Execute(writer, nil)
 }
 
-func renderInterface(info dbus.InterfaceInfo, writer io.Writer, ifc_name, exportName string) {
-	if INFOS.Config.Target == GoLang {
-		filterKeyWord(getGoKeyword, &info)
-	} else if INFOS.Config.Target == PyQt {
-		filterKeyWord(getPyQtKeyword, &info)
-	} else if INFOS.Config.Target == QML {
-		filterKeyWord(getGoKeyword, &info)
-	}
-	log.Printf("Generate %q code for service:%q interface:%q ObjectName:%q", INFOS.Config.Target, INFOS.Config.DestName, ifc_name, exportName)
+func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Writer, ifc_name, exportName string, infos *Infos) {
+	//TODO: removing dependent on variable of target
+	filterKeyWord(target, &info)
+
+	log.Printf("Generate %q code for service:%q interface:%q ObjectName:%q", target, infos.DestName(), ifc_name, exportName)
+	//TODO: move the common functions to the file of template_common.go
 	funcs := template.FuncMap{
 		"Lower":          lower,
 		"Upper":          upper,
-		"BusType":        func() string { return INFOS.Config.BusType },
-		"PkgName":        func() string { return INFOS.Config.PkgName },
+		"BusType":        func() string { return infos.BusType() },
+		"PkgName":        func() string { return infos.PackageName() },
 		"OBJ_NAME":       func() string { return "obj" },
 		"TypeFor":        dbus.TypeFor,
 		"getQType":       getQType,
-		"DestName":       func() string { return INFOS.Config.DestName },
+		"DestName":       func() string { return infos.DestName() },
 		"IfcName":        func() string { return ifc_name },
 		"ExportName":     func() string { return exportName },
 		"NormalizeQDBus": normalizeQDBus,
@@ -149,9 +134,9 @@ func renderInterface(info dbus.InterfaceInfo, writer io.Writer, ifc_name, export
 		},
 		"TryConvertObjectPath": func(prop dbus.PropertyInfo) string {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
-				switch INFOS.Config.Target {
+				switch BindingTarget(target) {
 				case GoLang:
-					return tryConvertObjectPathGo(prop.Type, v)
+					return tryConvertObjectPathGo(infos, prop.Type, v)
 				case QML:
 					return tryConvertObjectPathQML(prop.Type, v)
 				}
@@ -160,9 +145,9 @@ func renderInterface(info dbus.InterfaceInfo, writer io.Writer, ifc_name, export
 		},
 		"GetObjectPathType": func(prop dbus.PropertyInfo) (ret string) {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
-				switch INFOS.Config.Target {
+				switch BindingTarget(target) {
 				case GoLang:
-					ret, _ = guessTypeGo(prop.Type, v)
+					ret, _ = guessTypeGo(infos, prop.Type, v)
 				case QML:
 					ret, _ = guessTypeQML(prop.Type, v)
 				}
@@ -171,14 +156,14 @@ func renderInterface(info dbus.InterfaceInfo, writer io.Writer, ifc_name, export
 			return dbus.TypeFor(prop.Type)
 		},
 	}
-	templ := template.Must(template.New(exportName).Funcs(funcs).Parse(TEMPLs["IFC_"+INFOS.Config.Target]))
+	templ := template.Must(template.New(exportName).Funcs(funcs).Parse(GetTemplate(target, TemplateTypeInterface)))
 	templ.Execute(writer, info)
 }
 
-func renderTest(testPath, objName string, writer io.Writer, info dbus.InterfaceInfo) {
+func renderTest(testPath, objName string, writer io.Writer, info dbus.InterfaceInfo, infos *Infos) {
 	funcs := template.FuncMap{
 		"TestPath": func() string { return testPath },
-		"PkgName":  func() string { return INFOS.Config.PkgName },
+		"PkgName":  func() string { return infos.PackageName() },
 		"ObjName":  func() string { return objName },
 		/*"GetTestValue": func(args []dbus.ArgInfo) string {*/
 		/*},*/

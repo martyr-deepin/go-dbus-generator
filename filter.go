@@ -70,7 +70,15 @@ func keywordFilter(v map[string]bool, old *string) (ret map[string]bool, hasHit 
 	return
 }
 
-func filterKeyWord(keyword func() map[string]bool, info *dbus.InterfaceInfo) {
+func filterKeyWord(target BindingTarget, info *dbus.InterfaceInfo) {
+	var keyword func() map[string]bool
+	switch target {
+	case GoLang, QML:
+		keyword = getGoKeyword
+	case PyQt:
+		keyword = getPyQtKeyword
+	}
+
 	var hit bool
 	keywordFilter(keyword(), &info.Name)
 
@@ -143,7 +151,7 @@ func filterKeyWord(keyword func() map[string]bool, info *dbus.InterfaceInfo) {
 		for i, p := range info.Properties {
 			var propName string
 			if p.Access == "readwrite" {
-				if INFOS.Config.Target == GoLang {
+				if target == GoLang {
 					propName = "Set" + p.Name
 				}
 				if usedName[propName] {
@@ -152,7 +160,7 @@ func filterKeyWord(keyword func() map[string]bool, info *dbus.InterfaceInfo) {
 					usedName[newName] = true
 				}
 			}
-			if INFOS.Config.Target == GoLang {
+			if target == GoLang {
 				propName = "Get" + p.Name
 			}
 			if usedName[propName] {

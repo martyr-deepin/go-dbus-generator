@@ -4,31 +4,40 @@ import "fmt"
 import "strings"
 import "log"
 
+func interfaceToObjectName(infos *Infos, ifc_name string) string {
+	for _, ifc := range infos.ListInterfaces() {
+		if ifc.Interface == ifc_name {
+			return ifc.ObjectName
+		}
+	}
+	return ""
+}
+
 func guessTypeQML(sig, con string) (r2 string, obj string) {
 	return
 }
 
-func guessTypeGo(sig, con string) (r2 string, obj string) {
+func guessTypeGo(infos *Infos, sig, con string) (r2 string, obj string) {
 	switch sig[0] {
 	case 'a':
 		if sig[1] == '{' {
 			r2 += "map["
-			t2, t3 := guessTypeGo(sig[2:], con[2:])
+			t2, t3 := guessTypeGo(infos, sig[2:], con[2:])
 			r2 += t2
 			obj = t3
 
 			r2 += "]"
 
-			t2, obj = guessTypeGo(sig[3:], con[3:])
+			t2, obj = guessTypeGo(infos, sig[3:], con[3:])
 			r2 += t2
 		} else if sig[1] == 'a' {
 			r2 += "[]"
-			t2, t3 := guessTypeGo(sig[1:], con[1:])
+			t2, t3 := guessTypeGo(infos, sig[1:], con[1:])
 			r2 += t2
 			obj = t3
 		} else {
 			r2 += "[]"
-			t2, t3 := guessTypeGo(sig[1:], con[1:])
+			t2, t3 := guessTypeGo(infos, sig[1:], con[1:])
 			r2 += t2
 			obj = t3
 		}
@@ -36,7 +45,7 @@ func guessTypeGo(sig, con string) (r2 string, obj string) {
 		r2 += "string"
 	case 'o':
 		i := strings.Index(con[1:], "|")
-		obj = interfaceToObjectName(con[1 : i+1])
+		obj = interfaceToObjectName(infos, con[1:i+1])
 		r2 += "*" + obj
 	}
 	return
@@ -46,7 +55,7 @@ func tryConvertObjectPathQML(sig, con string) (r string) {
 	return
 }
 
-func tryConvertObjectPathGo(sig, con string) (r string) {
+func tryConvertObjectPathGo(infos *Infos, sig, con string) (r string) {
 	if !strings.Contains(sig, "o") {
 		return ""
 	}
@@ -54,7 +63,7 @@ func tryConvertObjectPathGo(sig, con string) (r string) {
 		log.Printf("Didn't support struct Object convert (%s)", sig)
 		return ""
 	}
-	r2, obj := guessTypeGo(sig, con)
+	r2, obj := guessTypeGo(infos, sig, con)
 	n := strings.Count(sig, "a")
 	r = fmt.Sprintf("after := %s{}\n", r2)
 	for i := 0; i < n; i++ {
