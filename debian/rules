@@ -19,4 +19,6 @@ override_dh_auto_install:
 	install -Dm755 out/dbus-generator debian/dbus-generator/usr/bin/dbus-generator
 
 override_dh_auto_test:
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
 	go test -v
+endif
