@@ -74,7 +74,7 @@ func (ifc _Interface) handlleBlackList(data dbus.InterfaceInfo) dbus.InterfaceIn
 func formatCode(infos *Infos) {
 	switch BindingTarget(infos.Config.Target) {
 	case GoLang:
-		exec.Command("gofmt", "-w", infos.OutputDir()).Start()
+		exec.Command("gofmt", "-w", infos.OutputDir()).Run()
 	}
 }
 

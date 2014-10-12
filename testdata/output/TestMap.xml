@@ -1,0 +1,16 @@
+<node>
+  <interface name="dbus_generator.test.TestMap">
+    <property name="Byte" type="a{sy}" access="read"></property>
+    <property name="Bool" type="a{sb}" access="read"></property>
+    <property name="Int16" type="a{sn}" access="read"></property>
+    <property name="Int32" type="a{si}" access="read"></property>
+    <property name="Int64" type="a{sx}" access="read"></property>
+    <property name="Float64" type="a{sd}" access="read"></property>
+    <property name="String" type="a{ss}" access="read"></property>
+    <property name="Signature" type="a{sg}" access="read"></property>
+    <property name="ObjectPath" type="a{so}" access="read"></property>
+    <property name="Variant" type="a{sv}" access="read"></property>
+    <property name="Map" type="a{ob}" access="read"></property>
+    <property name="MapMap" type="a{sa{sb}}" access="read"></property>
+  </interface>
+</node>

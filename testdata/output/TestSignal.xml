@@ -1,0 +1,40 @@
+<node>
+  <interface name="dbus_generator.test.TestSignal">
+    <signal name="Byte">
+      <arg type="y"></arg>
+    </signal>
+    <signal name="FixBool">
+      <arg type="b"></arg>
+    </signal>
+    <signal name="Int16">
+      <arg type="n"></arg>
+    </signal>
+    <signal name="Int32">
+      <arg type="i"></arg>
+    </signal>
+    <signal name="Int64">
+      <arg type="x"></arg>
+    </signal>
+    <signal name="Float64">
+      <arg type="d"></arg>
+    </signal>
+    <signal name="String">
+      <arg type="s"></arg>
+    </signal>
+    <signal name="Signature">
+      <arg type="g"></arg>
+    </signal>
+    <signal name="Variant">
+      <arg type="v"></arg>
+    </signal>
+    <signal name="MultiIn">
+      <arg type="y"></arg>
+      <arg type="b"></arg>
+      <arg type="n"></arg>
+    </signal>
+    <signal name="Map">
+      <arg type="a{yy}"></arg>
+    </signal>
+    <property name="ObjectPathfunc" type="o" access="read"></property>
+  </interface>
+</node>

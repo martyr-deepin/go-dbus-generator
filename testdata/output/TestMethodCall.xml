@@ -1,0 +1,28 @@
+<node>
+  <interface name="dbus_generator.test.TestMethodCall">
+    <method name="Test"></method>
+    <method name="TestError">
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+    </method>
+    <method name="TestErrorWithMultiReturn">
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="out"></arg>
+    </method>
+    <method name="TestIn">
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+      <arg type="a{saa{si}}" direction="in"></arg>
+    </method>
+    <method name="TestMultiReturn">
+      <arg type="a{saa{si}}" direction="out"></arg>
+      <arg type="a{saa{si}}" direction="out"></arg>
+    </method>
+    <method name="TestReturn">
+      <arg type="a{saa{si}}" direction="out"></arg>
+    </method>
+  </interface>
+</node>

@@ -1,0 +1,14 @@
+<node>
+  <interface name="dbus_generator.test.TestBasic">
+    <property name="Byte" type="y" access="read"></property>
+    <property name="Bool" type="b" access="read"></property>
+    <property name="Int16" type="n" access="read"></property>
+    <property name="Int32" type="i" access="read"></property>
+    <property name="Int64" type="x" access="read"></property>
+    <property name="Float64" type="d" access="read"></property>
+    <property name="String" type="s" access="read"></property>
+    <property name="Signature" type="g" access="read"></property>
+    <property name="ObjectPath" type="o" access="read"></property>
+    <property name="Variant" type="v" access="read"></property>
+  </interface>
+</node>

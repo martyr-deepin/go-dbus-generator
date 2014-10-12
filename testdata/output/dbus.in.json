@@ -1,0 +1,45 @@
+{
+  "Config": {
+    "InputDir": "testdata/output",
+    "BusType": "Session",
+    "DestName": "dbus_generator.test"
+  },
+  "Interfaces": [
+    {
+      "Interface": "dbus_generator.test.TestBasic",
+      "OutFile": "TestBasic",
+      "XMLFile": "TestBasic.xml",
+      "ObjectName": "TestBasic"
+    },
+    {
+      "Interface": "dbus_generator.test.TestMap",
+      "OutFile": "TestMap",
+      "XMLFile": "TestMap.xml",
+      "ObjectName": "TestMap"
+    },
+    {
+      "Interface": "dbus_generator.test.TestMethodCall",
+      "OutFile": "TestMethodCall",
+      "XMLFile": "TestMethodCall.xml",
+      "ObjectName": "TestMethodCall"
+    },
+    {
+      "Interface": "dbus_generator.test.TestSignal",
+      "OutFile": "TestSignal",
+      "XMLFile": "TestSignal.xml",
+      "ObjectName": "TestSignal"
+    },
+    {
+      "Interface": "dbus_generator.test.TestFoo",
+      "OutFile": "TestFoo",
+      "XMLFile": "TestFoo.xml",
+      "ObjectName": "TestFoo"
+    },
+    {
+      "Interface": "dbus_generator.test.TestArray",
+      "OutFile": "TestArray",
+      "XMLFile": "TestArray.xml",
+      "ObjectName": "TestArray"
+    }
+  ]
+}

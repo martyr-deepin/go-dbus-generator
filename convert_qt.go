@@ -14,7 +14,7 @@ var _sig2QType = map[byte]string{
 	't': "qulonglong",
 	'd': "double",
 	's': "QString",
-	'g': "QDBusOSignature",
+	'g': "QDBusSignature",
 	'o': "QDBusObjectPath",
 	'v': "QDBusVariant",
 }
