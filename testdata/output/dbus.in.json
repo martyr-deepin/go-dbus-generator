@@ -6,10 +6,22 @@
   },
   "Interfaces": [
     {
+      "Interface": "dbus_generator.test.TestArray",
+      "OutFile": "TestArray",
+      "XMLFile": "TestArray.xml",
+      "ObjectName": "TestArray"
+    },
+    {
       "Interface": "dbus_generator.test.TestBasic",
       "OutFile": "TestBasic",
       "XMLFile": "TestBasic.xml",
       "ObjectName": "TestBasic"
+    },
+    {
+      "Interface": "dbus_generator.test.TestFoo",
+      "OutFile": "TestFoo",
+      "XMLFile": "TestFoo.xml",
+      "ObjectName": "TestFoo"
     },
     {
       "Interface": "dbus_generator.test.TestMap",
@@ -28,18 +40,6 @@
       "OutFile": "TestSignal",
       "XMLFile": "TestSignal.xml",
       "ObjectName": "TestSignal"
-    },
-    {
-      "Interface": "dbus_generator.test.TestFoo",
-      "OutFile": "TestFoo",
-      "XMLFile": "TestFoo.xml",
-      "ObjectName": "TestFoo"
-    },
-    {
-      "Interface": "dbus_generator.test.TestArray",
-      "OutFile": "TestArray",
-      "XMLFile": "TestArray.xml",
-      "ObjectName": "TestArray"
     }
   ]
 }

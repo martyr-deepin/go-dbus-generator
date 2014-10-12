@@ -2,13 +2,12 @@ package main
 
 import "encoding/json"
 import "encoding/xml"
-import "fmt"
 import "log"
 import "os"
 import "path"
 import "pkg.linuxdeepin.com/lib/dbus"
+import "sort"
 import "strings"
-import "time"
 
 const (
 	XMLDir = "xml"
@@ -25,6 +24,17 @@ type InterfaceConfig struct {
 	OutFile    string
 	XMLFile    string
 	ObjectName string
+}
+type InterfaceConfigs []InterfaceConfig
+
+func (ifs InterfaceConfigs) Len() int {
+	return len(ifs)
+}
+func (ifs InterfaceConfigs) Swap(i, j int) {
+	ifs[i], ifs[j] = ifs[j], ifs[i]
+}
+func (ifs InterfaceConfigs) Less(i, j int) bool {
+	return ifs[i].Interface < ifs[j].Interface
 }
 
 type ConfigFile struct {
@@ -62,60 +72,6 @@ func GetConfigFile() *ConfigFile {
 	return __configFile__
 }
 
-func (cfg *ConfigFile) Generate2() {
-	con, err := dbus.SessionBus()
-	if err != nil {
-		log.Fatal("Can't connect to session bus")
-	}
-	os.Mkdir(*OutputDir, os.ModePerm|os.ModeDir)
-	fmt.Println("HH")
-
-	for ifcInfo, obj := range cfg.objs {
-		cfg.Interfaces = append(cfg.Interfaces, ifcInfo)
-		fmt.Println("1")
-		switch strings.ToLower(cfg.Config.BusType) {
-		case "session":
-			err := dbus.InstallOnSession(obj)
-			if err != nil {
-				log.Fatal("failed install on session", obj.GetDBusInfo(), err)
-			}
-		case "system":
-			err := dbus.InstallOnSystem(obj)
-			log.Fatal("failed install on session", obj.GetDBusInfo(), err)
-		default:
-			log.Fatal("didn't support bus type", cfg.Config)
-		}
-		fmt.Println("2")
-
-		var xml string
-		<-time.After(time.Second * 1)
-		dbusobj := con.Object(obj.GetDBusInfo().Dest, dbus.ObjectPath(obj.GetDBusInfo().ObjectPath))
-		dbusobj.Call("org.freedesktop.DBus.Introspectable.Introspect", dbus.FlagNoAutoStart).Store(&xml)
-		fmt.Println("3")
-		f, err := os.Create(path.Join(*OutputDir, ifcInfo.XMLFile))
-		if err != nil {
-			log.Fatal("failed create xml file", ifcInfo.XMLFile, err)
-		}
-		f.WriteString(xml)
-		f.Close()
-		log.Println("Generated...", path.Join(*OutputDir, ifcInfo.XMLFile))
-
-		//dbus.UnInstallObject(obj)
-	}
-
-	f, err := os.Create(path.Join(*OutputDir, "dbus.in.json"))
-	if err != nil {
-		log.Fatal("failed create dbus.in.json", err)
-	}
-	defer f.Close()
-	bytes, err := json.MarshalIndent(cfg, "", "  ")
-	if err != nil {
-		log.Fatal("marsh ConfigFile failed:", err)
-	}
-	f.Write(bytes)
-	log.Println("Generated...", path.Join(*OutputDir, "dbus.in.json"))
-}
-
 type XMLInterface struct {
 	Interface *dbus.InterfaceInfo `xml:"interface"`
 }
@@ -140,12 +96,13 @@ func (cfg *ConfigFile) Generate() {
 			log.Fatal("failed marshl interface:", err)
 		}
 
-		fmt.Println("HH:", string(bytes))
-
 		f.Write(bytes)
 		f.Close()
 		log.Println("Generated...", path.Join(*OutputDir, ifcInfo.XMLFile))
 	}
+
+	//avoid random position otherwise it will bother git diff.
+	sort.Sort(InterfaceConfigs(cfg.Interfaces))
 
 	f, err := os.Create(path.Join(*OutputDir, "dbus.in.json"))
 	if err != nil {
