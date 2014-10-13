@@ -24,7 +24,7 @@ func (*testWrap) TestGolang(c *C.C) {
 
 	geneateInit(infos)
 	generateMain(infos)
-	formatCode(infos)
+	renderedEnd(infos)
 
 	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && go build", output)).CombinedOutput()
 	c.Check(err, C.Equals, nil)
@@ -40,7 +40,7 @@ func (*testWrap) TestQML(c *C.C) {
 
 	geneateInit(infos)
 	generateMain(infos)
-	formatCode(infos)
+	renderedEnd(infos)
 
 	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && qmake && make", output)).CombinedOutput()
 	c.Check(err, C.Equals, nil)

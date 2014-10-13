@@ -71,10 +71,12 @@ func (ifc _Interface) handlleBlackList(data dbus.InterfaceInfo) dbus.InterfaceIn
 	return data
 }
 
-func formatCode(infos *Infos) {
+func renderedEnd(infos *Infos) {
 	switch BindingTarget(infos.Config.Target) {
 	case GoLang:
 		exec.Command("gofmt", "-w", infos.OutputDir()).Run()
+	case QML:
+		renderQMLProject(infos.OutputDir(), infos)
 	}
 }
 
@@ -86,9 +88,6 @@ func geneateInit(infos *Infos) {
 		}
 	}
 
-	if BindingTarget(infos.Target()) == QML {
-		renderQMLProject(infos.OutputDir(), infos)
-	}
 }
 
 func generateMain(infos *Infos) {
@@ -134,5 +133,5 @@ func main() {
 	geneateInit(infos)
 	generateMain(infos)
 
-	formatCode(infos)
+	renderedEnd(infos)
 }
