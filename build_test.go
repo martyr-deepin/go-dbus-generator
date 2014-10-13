@@ -2,8 +2,8 @@ package main
 
 import "fmt"
 import "os"
-import "testing"
 import "os/exec"
+import C "launchpad.net/gocheck"
 
 const (
 	DBusInJson = "testdata/output/dbus.in.json"
@@ -17,7 +17,7 @@ func init() {
 	}
 }
 
-func TestGolang(t *testing.T) {
+func (*testWrap) TestGolang(c *C.C) {
 	output := "tmp_golang__"
 	infos := loadInfos(DBusInJson)
 	infos.normalize(output, "golang")
@@ -26,17 +26,14 @@ func TestGolang(t *testing.T) {
 	generateMain(infos)
 	formatCode(infos)
 
-	if out, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && go build", output)).CombinedOutput(); err != nil {
-		fmt.Println(string(out))
-		t.Fatal("Build:" + err.Error())
-	}
+	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && go build", output)).CombinedOutput()
+	c.Check(err, C.Equals, nil)
 
-	if err := exec.Command("rm", "-rf", "tmp_golang__").Run(); err != nil {
-		t.Fatal("rm:" + err.Error())
-	}
+	err = exec.Command("rm", "-rf", "tmp_golang__").Run()
+	c.Check(err, C.Equals, nil)
 }
 
-func TestQML(t *testing.T) {
+func (*testWrap) TestQML(c *C.C) {
 	output := "tmp_qml__"
 	infos := loadInfos(DBusInJson)
 	infos.normalize(output, "qml")
@@ -45,12 +42,9 @@ func TestQML(t *testing.T) {
 	generateMain(infos)
 	formatCode(infos)
 
-	if out, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && qmake && make", output)).CombinedOutput(); err != nil {
-		fmt.Println(string(out))
-		t.Fatal("Build:" + err.Error())
-	}
+	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && qmake && make", output)).CombinedOutput()
+	c.Check(err, C.Equals, nil)
 
-	if err := exec.Command("rm", "-rf", output).Run(); err != nil {
-		t.Fatal("rm:" + err.Error())
-	}
+	exec.Command("rm", "-rf", output).Run()
+	c.Check(err, C.Equals, nil)
 }
