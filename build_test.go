@@ -19,14 +19,17 @@ func init() {
 
 func (*testWrap) TestGolang(c *C.C) {
 	output := "tmp_golang__"
-	infos := loadInfos(DBusInJson)
-	infos.normalize(output, "golang")
+	infos, err := LoadInfos(DBusInJson, output, "Golang")
+	c.Check(err, C.Equals, nil)
 
 	geneateInit(infos)
 	generateMain(infos)
 	renderedEnd(infos)
 
-	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && go build", output)).CombinedOutput()
+	o, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && go build", output)).CombinedOutput()
+	if err != nil {
+		c.Fatal(string(o))
+	}
 	c.Check(err, C.Equals, nil)
 
 	err = exec.Command("rm", "-rf", "tmp_golang__").Run()
@@ -35,14 +38,14 @@ func (*testWrap) TestGolang(c *C.C) {
 
 func (*testWrap) TestQML(c *C.C) {
 	output := "tmp_qml__"
-	infos := loadInfos(DBusInJson)
-	infos.normalize(output, "qml")
+	infos, err := LoadInfos(DBusInJson, output, "Qml")
+	c.Check(err, C.Equals, nil)
 
 	geneateInit(infos)
 	generateMain(infos)
 	renderedEnd(infos)
 
-	_, err := exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && qmake && make", output)).CombinedOutput()
+	_, err = exec.Command("bash", "-c", fmt.Sprintf("cd %s && ls && qmake && make", output)).CombinedOutput()
 	c.Check(err, C.Equals, nil)
 
 	exec.Command("rm", "-rf", output).Run()

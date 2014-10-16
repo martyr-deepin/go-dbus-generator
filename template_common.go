@@ -32,7 +32,7 @@ func GetTemplate(target BindingTarget, ttype TemplateType) string {
 	case QML:
 		name = "qml"
 	default:
-		panic("didn't support binding target")
+		panic("didn't support binding target" + target)
 	}
 	switch ttype {
 	case TemplateTypeGlobal:

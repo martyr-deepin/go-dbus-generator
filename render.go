@@ -134,7 +134,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 		},
 		"TryConvertObjectPath": func(prop dbus.PropertyInfo) string {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
-				switch BindingTarget(target) {
+				switch target {
 				case GoLang:
 					return tryConvertObjectPathGo(infos, prop.Type, v)
 				case QML:
@@ -145,7 +145,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 		},
 		"GetObjectPathType": func(prop dbus.PropertyInfo) (ret string) {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
-				switch BindingTarget(target) {
+				switch target {
 				case GoLang:
 					ret, _ = guessTypeGo(infos, prop.Type, v)
 				case QML:

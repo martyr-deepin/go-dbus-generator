@@ -3,8 +3,20 @@ package main
 import "strings"
 import "pkg.linuxdeepin.com/lib/dbus"
 
-func lower(str string) string   { return strings.ToLower(str[:1]) + str[1:] }
-func upper(str string) string   { return strings.ToUpper(str[:1]) + str[1:] }
+func lower(str string) string {
+	if str == "" {
+		return ""
+	}
+
+	return strings.ToLower(str[:1]) + str[1:]
+}
+func upper(str string) string {
+	if str == "" {
+		return ""
+	}
+
+	return strings.ToUpper(str[:1]) + str[1:]
+}
 func ifc2obj(ifc string) string { return "/" + strings.Replace(ifc, ".", "/", -1) }
 
 func isValidInterface(s string) bool {

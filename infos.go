@@ -14,12 +14,12 @@ type BindingTarget string
 
 const (
 	QML    BindingTarget = "qml"
-	GoLang               = "golang"
-	PyQt                 = "pyqt"
+	GoLang BindingTarget = "golang"
+	PyQt   BindingTarget = "pyqt"
 )
 
 type _Config struct {
-	Target       string
+	Target       BindingTarget
 	NotExportBus bool
 	OutputDir    string
 	InputDir     string
@@ -34,43 +34,74 @@ type Infos struct {
 	outputs    map[string]io.Writer
 }
 
-func loadInfos(path string) *Infos {
+func LoadInfos(path string, outputDir string, target string) (*Infos, error) {
 	infos := NewInfos()
 
 	f, err := os.Open(path)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	dec := json.NewDecoder(f)
 	err = dec.Decode(&infos)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf(`failed parse "%s": %s`, path, err.Error())
 	}
-	return infos
+	err = infos.normalize(outputDir, target)
+	if err != nil {
+		return nil, err
+	}
+	return infos, nil
 }
-func (infos *Infos) normalize(outputDir string, target string) {
-	if outputDir != "out" {
-		infos.SetOutputDir(outputDir)
-	} else if len(infos.OutputDir()) == 0 {
-		infos.SetOutputDir(outputDir)
+
+const DefaultOutputDir = "out"
+
+func (infos *Infos) normalize(outputDir string, target string) error {
+	var output string
+	if outputDir != "" {
+		output = outputDir
+	} else if infos.OutputDir() != "" {
+		output = infos.OutputDir()
+	} else {
+		output = DefaultOutputDir
+	}
+	err := infos.SetOutputDir(output)
+	if err != nil {
+		return err
 	}
 
 	if target != "" {
-		infos.SetTarget(target)
-	}
-
-	os.MkdirAll(infos.OutputDir(), 0755)
-
-	infos.SetBusType(infos.BusType())
-	infos.SetTarget(infos.Target())
-
-	if infos.PackageName() == "" {
-		name := getMember(BindingTarget(infos.Target()), infos.DestName())
-		infos.SetPackageName(name)
-		if infos.PackageName() == "" {
-			log.Fatal("Didn't specify an PkgName and can't calclus an valid PkgName by DestName:" + infos.DestName())
+		err := infos.SetTarget((target))
+		if err != nil {
+			return err
 		}
 	}
+
+	switch infos.Target() {
+	case GoLang:
+		err := infos.SetBusType(upper(infos.BusType()))
+		if err != nil {
+			return err
+		}
+	case PyQt, QML:
+		err := infos.SetBusType(lower(infos.BusType()))
+		if err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("Please set the correct target before invoke SetBusType: %s", infos.Target())
+	}
+
+	if infos.PackageName() == "" {
+		guestName := getMember(infos.Target(), infos.DestName())
+		if guestName == "" {
+			return fmt.Errorf("What's the name of pacakge you want to generated? Please specify an PkgName or DestName field.")
+		}
+		err := infos.SetPackageName(guestName)
+		if err != nil {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (i *Infos) BusType() string {
@@ -79,8 +110,9 @@ func (i *Infos) BusType() string {
 func (i *Infos) PackageName() string {
 	return i.Config.PkgName
 }
-func (i *Infos) SetPackageName(name string) {
+func (i *Infos) SetPackageName(name string) error {
 	i.Config.PkgName = name
+	return nil
 }
 func (i *Infos) ListInterfaces() []_Interface {
 	return i.Interfaces
@@ -94,29 +126,38 @@ func (i *Infos) OutputDir() string {
 func (i *Infos) InputDir() string {
 	return i.Config.InputDir
 }
-func (i *Infos) SetOutputDir(dir string) {
+func (i *Infos) SetOutputDir(dir string) error {
+	if dir != "" {
+		err := os.MkdirAll(dir, os.ModePerm|os.ModeDir)
+		if err != nil {
+			return err
+		}
+	}
 	i.Config.OutputDir = dir
+	return nil
 }
-func (i *Infos) Target() string {
+func (i *Infos) Target() BindingTarget {
 	return i.Config.Target
 }
-func (i *Infos) SetTarget(target string) {
-	i.Config.Target = target
+func (i *Infos) SetTarget(target string) error {
+	t := BindingTarget(strings.ToLower(target))
+	switch t {
+	case GoLang, QML:
+	case PyQt:
+		log.Println("Warning: pyqt support is not completed.")
+	default:
+		return fmt.Errorf("Didn't supported target type: %s", target)
+	}
+	i.Config.Target = t
+	return nil
 }
 func (i *Infos) SetBusType(bus string) error {
-	bus = strings.ToLower(bus)
-	if bus != "session" && bus != "system" {
+	_bus := strings.ToLower(bus)
+	if _bus != "session" && _bus != "system" {
 		return fmt.Errorf("Didn't support bus type %s", bus)
 	}
+	i.Config.BusType = bus
 
-	switch BindingTarget(i.Config.Target) {
-	case GoLang:
-		i.Config.BusType = upper(bus)
-	case PyQt:
-		i.Config.BusType = lower(bus)
-	case QML:
-		i.Config.BusType = lower(bus)
-	}
 	return nil
 }
 func (i *Infos) GetWriter(name string) (io.Writer, bool) {
@@ -127,7 +168,7 @@ func (i *Infos) GetWriter(name string) (io.Writer, bool) {
 
 	var suffix string
 	if path.Ext(name) == "" {
-		switch BindingTarget(i.Target()) {
+		switch i.Target() {
 		case GoLang:
 			suffix = ".go"
 		case PyQt:
@@ -146,8 +187,7 @@ func (i *Infos) GetWriter(name string) (io.Writer, bool) {
 }
 
 func NewInfos() *Infos {
-	i := Infos{
+	return &Infos{
 		outputs: make(map[string]io.Writer),
 	}
-	return &i
 }
