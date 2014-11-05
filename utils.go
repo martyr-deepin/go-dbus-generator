@@ -1,7 +1,7 @@
 package main
 
 import "strings"
-import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 
 func lower(str string) string {
 	if str == "" {
@@ -95,7 +95,7 @@ func getQMLPkgName(str string) (r string) {
 // com.deepin.DBus.ObjectPathConvert.Property for properties
 // com.deepin.DBus.ObjectPathConvert.Out1..  for methods and signals
 // com.deepin.DBus.ObjectPathConvert.Arg1.. for methods input
-func getObjectPathConvert(suffix string, annotations []dbus.AnnotationInfo) string {
+func getObjectPathConvert(suffix string, annotations []introspect.AnnotationInfo) string {
 	for _, v := range annotations {
 		if v.Name == "com.deepin.DBus.ObjectPathConvert."+suffix {
 			return v.Value

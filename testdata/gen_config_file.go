@@ -6,6 +6,7 @@ import "log"
 import "os"
 import "path"
 import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 import "sort"
 import "strings"
 
@@ -73,7 +74,7 @@ func GetConfigFile() *ConfigFile {
 }
 
 type XMLInterface struct {
-	Interface *dbus.InterfaceInfo `xml:"interface"`
+	Interface *introspect.InterfaceInfo `xml:"interface"`
 }
 
 func (cfg *ConfigFile) Generate() {
@@ -88,9 +89,9 @@ func (cfg *ConfigFile) Generate() {
 			log.Fatal("failed create xml file", ifcInfo.XMLFile, err)
 		}
 
-		type Interface *dbus.InterfaceInfo
-		bytes, err := xml.MarshalIndent(dbus.NodeInfo{
-			Interfaces: []dbus.InterfaceInfo{*xmlInfo},
+		type Interface *introspect.InterfaceInfo
+		bytes, err := xml.MarshalIndent(introspect.NodeInfo{
+			Interfaces: []introspect.InterfaceInfo{*xmlInfo},
 		}, "", "  ")
 		if err != nil {
 			log.Fatal("failed marshl interface:", err)

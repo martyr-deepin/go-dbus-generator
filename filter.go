@@ -1,6 +1,6 @@
 package main
 
-import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 import "strings"
 import "strconv"
 import "log"
@@ -70,7 +70,7 @@ func keywordFilter(v map[string]bool, old *string) (ret map[string]bool, hasHit 
 	return
 }
 
-func filterKeyWord(target BindingTarget, info *dbus.InterfaceInfo) {
+func filterKeyWord(target BindingTarget, info *introspect.InterfaceInfo) {
 	var keyword func() map[string]bool
 	switch target {
 	case GoLang, QML:
@@ -135,7 +135,7 @@ func filterKeyWord(target BindingTarget, info *dbus.InterfaceInfo) {
 		}
 	}
 
-	func(info *dbus.InterfaceInfo) {
+	func(info *introspect.InterfaceInfo) {
 		usedName := make(map[string]bool)
 		for _, m := range info.Methods {
 			usedName[m.Name] = true

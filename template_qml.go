@@ -7,7 +7,7 @@ import "os/exec"
 import "path"
 import "strings"
 import "text/template"
-import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 
 var __IFC_TEMPLATE_INIT_QML = `/*This file is auto generate by pkg.linuxdeepin.com/dbus-generator. Don't edit it*/
 #include <QtDBus>
@@ -295,7 +295,7 @@ func renderTestQML(infos *Infos) {
 	}
 	template.Must(template.New("qmltest").Funcs(template.FuncMap{
 		"Lower":            lower,
-		"GetInterfaceInfo": func(ifc _Interface) dbus.InterfaceInfo { return GetInterfaceInfo(infos.InputDir(), ifc) },
+		"GetInterfaceInfo": func(ifc _Interface) introspect.InterfaceInfo { return GetInterfaceInfo(infos.InputDir(), ifc) },
 		"BusType":          func() string { return infos.BusType() },
 		"PkgName":          func() string { return pkgName },
 		"Ifc2Obj":          ifc2obj,

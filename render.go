@@ -2,6 +2,7 @@ package main
 
 import "text/template"
 import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 import "io"
 import "log"
 import "strings"
@@ -33,7 +34,7 @@ func renderInterfaceInit(writer io.Writer, tpl string, infos *Infos) {
 	}).Parse(tpl)).Execute(writer, nil)
 }
 
-func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Writer, ifc_name, exportName string, infos *Infos) {
+func renderInterface(target BindingTarget, info introspect.InterfaceInfo, writer io.Writer, ifc_name, exportName string, infos *Infos) {
 	//TODO: removing dependent on variable of target
 	filterKeyWord(target, &info)
 
@@ -53,9 +54,9 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 		"NormalizeQDBus": normalizeQDBus,
 		"Normalize":      normalizeMethodName,
 		"Ifc2Obj":        ifc2obj,
-		"PropWritable":   func(prop dbus.PropertyInfo) bool { return prop.Access == "readwrite" },
-		"GetOuts": func(args []dbus.ArgInfo) []dbus.ArgInfo {
-			ret := make([]dbus.ArgInfo, 0)
+		"PropWritable":   func(prop introspect.PropertyInfo) bool { return prop.Access == "readwrite" },
+		"GetOuts": func(args []introspect.ArgInfo) []introspect.ArgInfo {
+			ret := make([]introspect.ArgInfo, 0)
 			for _, a := range args {
 				if a.Direction == "in" {
 					ret = append(ret, a)
@@ -63,7 +64,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return ret
 		},
-		"CalcArgNum": func(args []dbus.ArgInfo, direction string) (r int) {
+		"CalcArgNum": func(args []introspect.ArgInfo, direction string) (r int) {
 			for _, arg := range args {
 				if arg.Direction == direction {
 					r++
@@ -80,7 +81,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return
 		},
-		"GetParamterNames": func(args []dbus.ArgInfo) (ret string) {
+		"GetParamterNames": func(args []introspect.ArgInfo) (ret string) {
 			for _, arg := range args {
 				if arg.Direction == "in" {
 					ret += ", "
@@ -89,7 +90,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return
 		},
-		"GetParamterOuts": func(args []dbus.ArgInfo) (ret string) {
+		"GetParamterOuts": func(args []introspect.ArgInfo) (ret string) {
 			var notFirst = false
 			for _, arg := range args {
 				if arg.Direction == "out" {
@@ -102,7 +103,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return
 		},
-		"GetParamterOutsProto": func(args []dbus.ArgInfo) (ret string) {
+		"GetParamterOutsProto": func(args []introspect.ArgInfo) (ret string) {
 			var notFirst = false
 			for _, arg := range args {
 				if arg.Direction == "out" {
@@ -115,7 +116,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return
 		},
-		"GetParamterInsProto": func(args []dbus.ArgInfo) (ret string) {
+		"GetParamterInsProto": func(args []introspect.ArgInfo) (ret string) {
 			var notFirst = false
 			for _, arg := range args {
 				if arg.Direction == "in" {
@@ -132,7 +133,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return
 		},
-		"TryConvertObjectPath": func(prop dbus.PropertyInfo) string {
+		"TryConvertObjectPath": func(prop introspect.PropertyInfo) string {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
 				switch target {
 				case GoLang:
@@ -143,7 +144,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 			}
 			return ""
 		},
-		"GetObjectPathType": func(prop dbus.PropertyInfo) (ret string) {
+		"GetObjectPathType": func(prop introspect.PropertyInfo) (ret string) {
 			if v := getObjectPathConvert("Property", prop.Annotations); v != "" {
 				switch target {
 				case GoLang:
@@ -160,7 +161,7 @@ func renderInterface(target BindingTarget, info dbus.InterfaceInfo, writer io.Wr
 	templ.Execute(writer, info)
 }
 
-func renderTest(testPath, objName string, writer io.Writer, info dbus.InterfaceInfo, infos *Infos) {
+func renderTest(testPath, objName string, writer io.Writer, info introspect.InterfaceInfo, infos *Infos) {
 	funcs := template.FuncMap{
 		"TestPath": func() string { return testPath },
 		"PkgName":  func() string { return infos.PackageName() },

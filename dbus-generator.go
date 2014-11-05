@@ -1,16 +1,14 @@
 package main
 
 import "path"
-import "encoding/xml"
 import "os"
 import "flag"
 import "fmt"
 import "os/exec"
 
-//TODO: remove pkg.linuxdeepin.com/lib/dbus
-import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.linuxdeepin.com/lib/dbus/introspect"
 
-func GetInterfaceInfo(inputdir string, ifc _Interface) dbus.InterfaceInfo {
+func GetInterfaceInfo(inputdir string, ifc _Interface) introspect.InterfaceInfo {
 	inFile := path.Join(inputdir, ifc.XMLFile)
 	_, err := os.Stat(inFile)
 	if err != nil {
@@ -18,19 +16,21 @@ func GetInterfaceInfo(inputdir string, ifc _Interface) dbus.InterfaceInfo {
 	}
 
 	reader, err := os.Open(inFile)
+	defer reader.Close()
 	if err != nil {
 		panic(err.Error() + "(File:" + inFile + ")")
 	}
 
-	decoder := xml.NewDecoder(reader)
-	obj := dbus.NodeInfo{}
-	decoder.Decode(&obj)
+	obj, err := introspect.Parse(reader)
+	if err != nil {
+		panic(err.Error() + "(File:" + inFile + ")")
+	}
+
 	for _, ifcInfo := range obj.Interfaces {
 		if ifcInfo.Name == ifc.Interface {
 			return ifc.handlleBlackList(ifcInfo)
 		}
 	}
-	reader.Close()
 	panic("Not Found Interface " + ifc.Interface)
 }
 
@@ -41,9 +41,9 @@ type _Interface struct {
 	BlackSignals                                                        []string
 }
 
-func (ifc _Interface) handlleBlackList(data dbus.InterfaceInfo) dbus.InterfaceInfo {
+func (ifc _Interface) handlleBlackList(data introspect.InterfaceInfo) introspect.InterfaceInfo {
 	for _, name := range ifc.BlackMethods {
-		var methods []dbus.MethodInfo
+		var methods []introspect.MethodInfo
 		for _, mInfo := range data.Methods {
 			if mInfo.Name != name {
 				methods = append(methods, mInfo)
@@ -52,7 +52,7 @@ func (ifc _Interface) handlleBlackList(data dbus.InterfaceInfo) dbus.InterfaceIn
 		data.Methods = methods
 	}
 	for _, name := range ifc.BlackProperties {
-		var properties []dbus.PropertyInfo
+		var properties []introspect.PropertyInfo
 		for _, pInfo := range data.Properties {
 			if pInfo.Name != name {
 				properties = append(properties, pInfo)
@@ -61,7 +61,7 @@ func (ifc _Interface) handlleBlackList(data dbus.InterfaceInfo) dbus.InterfaceIn
 		data.Properties = properties
 	}
 	for _, name := range ifc.BlackSignals {
-		var signals []dbus.SignalInfo
+		var signals []introspect.SignalInfo
 		for _, sInfo := range data.Signals {
 			if sInfo.Name != name {
 				signals = append(signals, sInfo)
