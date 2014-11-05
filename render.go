@@ -1,5 +1,6 @@
 package main
 
+import "fmt"
 import "text/template"
 import "pkg.linuxdeepin.com/lib/dbus"
 import "pkg.linuxdeepin.com/lib/dbus/introspect"
@@ -55,10 +56,19 @@ func renderInterface(target BindingTarget, info introspect.InterfaceInfo, writer
 		"Normalize":      normalizeMethodName,
 		"Ifc2Obj":        ifc2obj,
 		"PropWritable":   func(prop introspect.PropertyInfo) bool { return prop.Access == "readwrite" },
+		"GetIns": func(args []introspect.ArgInfo) []introspect.ArgInfo {
+			ret := make([]introspect.ArgInfo, 0)
+			for _, a := range args {
+				if a.Direction != "out" {
+					ret = append(ret, a)
+				}
+			}
+			return ret
+		},
 		"GetOuts": func(args []introspect.ArgInfo) []introspect.ArgInfo {
 			ret := make([]introspect.ArgInfo, 0)
 			for _, a := range args {
-				if a.Direction == "in" {
+				if a.Direction == "out" {
 					ret = append(ret, a)
 				}
 			}
@@ -156,9 +166,23 @@ func renderInterface(target BindingTarget, info introspect.InterfaceInfo, writer
 			}
 			return dbus.TypeFor(prop.Type)
 		},
+		"QMLI18nWrapper": func(item I18nItem, varName string) string {
+			dir, domain, ok := item.I18nInfo()
+			if !ok {
+				return varName
+			}
+			if dir == "" {
+				dir = "/usr/share/locale"
+			}
+			return fmt.Sprintf("translateI18n(%q, %q, %s)", dir, domain, varName)
+		},
 	}
 	templ := template.Must(template.New(exportName).Funcs(funcs).Parse(GetTemplate(target, TemplateTypeInterface)))
 	templ.Execute(writer, info)
+}
+
+type I18nItem interface {
+	I18nInfo() (string, string, bool)
 }
 
 func renderTest(testPath, objName string, writer io.Writer, info introspect.InterfaceInfo, infos *Infos) {

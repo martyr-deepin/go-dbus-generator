@@ -13,6 +13,7 @@ var __IFC_TEMPLATE_INIT_QML = `/*This file is auto generate by pkg.linuxdeepin.c
 #include <QtDBus>
 QVariant unmarsh(const QVariant&);
 QVariant marsh(QDBusArgument target, const QVariant& arg, const QString& sig);
+QVariant translateI18n(const char* dir, const char* domain,  const QVariant v);
 `
 
 var __IFC_TEMPLATE_QML = `
@@ -126,32 +127,32 @@ public:
 	    Q_EMIT __{{Lower .Name}}Changed__(marshedValue);
     }{{end}}{{end}}
 
-public Q_SLOTS:{{range .Methods}}
-    QVariant {{.Name}}({{range $i, $e := GetOuts .Args}}{{if ne $i 0}}, {{end}}const QVariant &{{.Name}}{{end}}) {
+public Q_SLOTS:{{range .Methods}} {{$outs := GetOuts .Args}} {{$ins := GetIns .Args}}
+    QVariant {{.Name}}({{range $i, $e := $ins}}{{if ne $i 0}}, {{end}}const QVariant &{{.Name}}{{end}}) {
 	    QList<QVariant> argumentList;
-	    argumentList{{range GetOuts .Args}} << marsh(QDBusArgument(), {{.Name}}, "{{.Type}}"){{end}};
+	    argumentList{{range $ins}} << marsh(QDBusArgument(), {{.Name}}, "{{.Type}}"){{end}};
 
 	    QDBusPendingReply<> call = m_ifc->asyncCallWithArgumentList(QLatin1String("{{.Name}}"), argumentList);
 	    call.waitForFinished();
-	    if (call.isValid()) {
-		    QList<QVariant> args = call.reply().arguments();
-		    switch (args.size()) {
-			    case 0: return QVariant();
-			    case 1: {
-				    return unmarsh(args[0]);
-			    }
-		    default:
-			    {
-				    for (int i=0; i<args.size(); i++) {
-					    args[i] = unmarsh(args[i]);
-				    }
-				    return args;
-			    }
-		    }
-	    } else {
+	    if (!call.isValid()) {
 		    qDebug() << "Error:" << call.error().message();
 		    return QVariant();
 	    }
+	    QList<QVariant> args = call.reply().arguments();
+
+	    {{ if eq (len $outs ) 0 }}
+	    return QVariant();
+	    {{ else if eq (len $outs) 1 }}
+	    return {{QMLI18nWrapper (index $outs 0) "unmarsh(args[0])"}};
+	    {{ else }}
+	    if (args.size() != {{len $outs}}) {
+		    return QVariant();
+	    }
+	    {{ range $i, $arg := $outs }}
+	    args[{{$i}}] = {{QMLI18nWrapper $arg (printf "unmarsh(args[%d])" $i)}};
+	    {{end}}
+	    return args;
+	    {{end}}
     }
 {{end}}
 
@@ -187,6 +188,16 @@ class DBusPlugin: public QQmlExtensionPlugin
              qmlRegisterType<{{.ObjectName}}>(uri, 1, 0, "{{.ObjectName}}");{{end}}
         }
 };
+
+#include <libintl.h>
+QVariant translateI18n(const char* dir, const char* domain,  const QVariant v)
+{
+	if (v.type() != QMetaType::QString) {
+		return v;
+	}
+	bindtextdomain(domain, dir);
+	return QVariant::fromValue<QString>(dgettext(domain, v.toString().toLocal8Bit()));
+}
 ` + _templateMarshUnMarsh + `
 #endif
 `
