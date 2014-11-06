@@ -143,9 +143,14 @@ public Q_SLOTS:{{range .Methods}} {{$outs := GetOuts .Args}} {{$ins := GetIns .A
 	    {{ if eq (len $outs ) 0 }}
 	    return QVariant();
 	    {{ else if eq (len $outs) 1 }}
+	    if (args.size() != 1) {
+		    qDebug() << "Warning: \"{{IfcName}}.{{.Name}}\" excepted one output parameter, but got " << args.size();
+		    return QVariant();
+	    }
 	    return {{QMLI18nWrapper (index $outs 0) "unmarsh(args[0])"}};
 	    {{ else }}
 	    if (args.size() != {{len $outs}}) {
+		    qDebug() << "Warning: \"{{IfcName}}.{{.Name}}\" excepted {{len $outs}} output parameters, but got " << args.size();
 		    return QVariant();
 	    }
 	    {{ range $i, $arg := $outs }}
