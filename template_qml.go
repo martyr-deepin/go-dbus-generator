@@ -135,7 +135,7 @@ public Q_SLOTS:{{range .Methods}} {{$outs := GetOuts .Args}} {{$ins := GetIns .A
 	    QDBusPendingReply<> call = m_ifc->asyncCallWithArgumentList(QLatin1String("{{.Name}}"), argumentList);
 	    call.waitForFinished();
 	    if (!call.isValid()) {
-		    qDebug() << "Error:" << call.error().message();
+		    qDebug() << "Error at {{IfcName}}.{{.Name}}:" << call.error().message();
 		    return QVariant();
 	    }
 	    QList<QVariant> args = call.reply().arguments();
