@@ -6,7 +6,7 @@ import "flag"
 import "fmt"
 import "os/exec"
 
-import "pkg.linuxdeepin.com/lib/dbus/introspect"
+import "pkg.deepin.io/lib/dbus/introspect"
 
 func GetInterfaceInfo(inputdir string, ifc _Interface) introspect.InterfaceInfo {
 	inFile := path.Join(inputdir, ifc.XMLFile)

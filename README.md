@@ -1,6 +1,6 @@
 dbus-generate is a static dbus binding tool.
 
-Currently, it support *QDBus* target and golang target with *pkg.linuxdeepin.com/lib/dbus*.
+Currently, it support *QDBus* target and golang target with *pkg.deepin.io/lib/dbus*.
 
 #Note
 The pyqt target is not maintained, because I haven't use this target in real world.

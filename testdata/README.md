@@ -1,5 +1,5 @@
 #What's this?
-This tool is used to generate test xml files for pkg.linuxdeepin.com/go-dbus-generator.
+This tool is used to generate test xml files for pkg.deepin.io/go-dbus-generator.
 It's mainly used by go-dbus-generator to run go test currently.
 
 If you feel it's useful in other ways, e.g. to generate xml files for you dbus object,

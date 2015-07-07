@@ -1,6 +1,6 @@
 package main
 
-import "pkg.linuxdeepin.com/lib/dbus/introspect"
+import "pkg.deepin.io/lib/dbus/introspect"
 import "strings"
 import "strconv"
 import "log"
