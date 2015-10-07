@@ -1,7 +1,0 @@
-<node>
-  <interface name="dbus_generator.test.TestFoo">
-    <method name="Foobar"></method>
-    <signal name="Bar"></signal>
-    <property name="Foo" type="s" access="read"></property>
-  </interface>
-</node>

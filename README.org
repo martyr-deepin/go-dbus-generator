@@ -1,0 +1,18 @@
+* 运行方式
+
+* 特殊情况处理
+** TODO 方法和对象名重复
+** TODO xml中包含cpp关键字
+1. 参数名称
+2. 属性名称
+3. 函数名称
+4. 结构体名称
+5. service address、interface、objectpath名称
+
+* TODO 文档自动生成
+* TODO 枚举支持
+* TODO 结构体字段名支持
+* DONE 生成Signals的参数代码
+  CLOSED: [2015-08-03 Mon 00:10]
+* 代码结构
+
