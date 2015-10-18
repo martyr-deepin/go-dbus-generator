@@ -1,7 +1,7 @@
 package main
 
 var __GLOBAL_TEMPLATE_PyQt = `#! /usr/bin/env python
-# This file is auto generate by pkg.linuxdeepin.com/dbus-generator . Don't edit it
+# This file is auto generate by pkg.deepin.io/dbus-generator . Don't edit it
 
 from PyQt5.QtCore import QObject, pyqtSlot{{range GetModules}}
 from {{.}} import *{{end}}
@@ -23,7 +23,7 @@ class DBusFactory(QObject):
 `
 
 var __IFC_TEMPLATE_INIT_PyQt = `#! /usr/bin/env python
-# This file is auto generate by pkg.linuxdeepin.com/dbus-generator . Don't edit it
+# This file is auto generate by pkg.deepin.io/dbus-generator . Don't edit it
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, pyqtProperty, QVariant
 from PyQt5.QtDBus import QDBusAbstractInterface, QDBusConnection, QDBusReply, QDBusMessage, QDBusInterface, QDBusError
 `
@@ -76,7 +76,7 @@ func Get{{ExportName}}(path string) *{{ExportName}} {
 
 `
 
-var __TEST_TEMPLATE_PyQt = `/*This file is auto generate by pkg.linuxdeepin.com/dbus-generator. Don't edit it*/
+var __TEST_TEMPLATE_PyQt = `/*This file is auto generate by pkg.deepin.io/dbus-generator. Don't edit it*/
 package {{PkgName}}
 import "testing"
 {{range .Methods}}

@@ -1,7 +1,7 @@
 package main
 
 import "strings"
-import "pkg.linuxdeepin.com/lib/dbus/introspect"
+import "pkg.deepin.io/lib/dbus/introspect"
 
 func lower(str string) string {
 	if str == "" {

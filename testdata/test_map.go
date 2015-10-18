@@ -1,6 +1,6 @@
 package main
 
-import "pkg.linuxdeepin.com/lib/dbus"
+import "pkg.deepin.io/lib/dbus"
 
 func init() {
 	self := &TestMap{}
