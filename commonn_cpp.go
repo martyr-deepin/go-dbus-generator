@@ -81,39 +81,39 @@ inline QVariant PropertyConverter(QVariant v)
 }
 
 
-template<typename T1=uchar, typename T2=uchar, typename T3=uchar, typename T4=uchar, typename T5=uchar, typename T6=uchar, typename T7=uchar, typename T8=uchar> class R {
+template<typename T1=uchar, typename T2=uchar, typename T3=uchar, typename T4=uchar, typename T5=uchar, typename T6=uchar, typename T7=uchar, typename T8=uchar> class R
+    : public QDBusPendingReply<> {
     template<int index>
     struct Select: SelectBase<index, T1, T2, T3, T4, T5, T6, T7, QDBusError> {
     };
 private:
     void waitForFinished() {
-        m_reply.waitForFinished();
-	if (!m_reply.isValid() || m_reply.isError()) {
+        QDBusPendingReply::waitForFinished();
+	if (!isValid() || isError()) {
             m_hasError = true;
-            m_error = m_reply.error();
+            m_error = error();
 	    return;
         }
         m_hasError = false;
         m_error = QDBusError();
     }
-    QDBusPendingReply<> m_reply;
     QDBusError m_error;
     DataConverter m_converter;
     bool m_hasError;
 public:
     R(QDBusPendingReply<> r, DataConverter c=NormalConverter):
-        m_reply(r), m_converter(c),m_hasError(false)
+        QDBusPendingReply(r), m_converter(c),m_hasError(false)
     {
     }
 
     bool hasError() {
-        if (!m_reply.isFinished()) {
+        if (!isFinished()) {
             waitForFinished();
         }
         return m_hasError;
     }
     QDBusError Error() {
-        if (!m_reply.isFinished()) {
+        if (!isFinished()) {
             waitForFinished();
         }
         return m_error;
@@ -121,13 +121,13 @@ public:
 
     template<int index>
     typename Select<index>::Type Value() {
-        if (!m_reply.isFinished()) {
+        if (!isFinished()) {
             waitForFinished();
             if (m_hasError) {
                 return typename Select<index>::Type();
             }
         }
-        QList<QVariant> args = m_reply.reply().arguments();
+        QList<QVariant> args = reply().arguments();
         if (args.size() <= index) {
             m_hasError = true;
             m_error = QDBusError(QDBusError::InvalidArgs, QString("can't fetch the %1th argument, because only up to %2 arguments.").arg(index).arg(args.size()));
@@ -141,14 +141,14 @@ public:
     QList<QVariant> Values() {
         QList<QVariant> ret;
 
-        if (!m_reply.isFinished()) {
+        if (!isFinished()) {
             waitForFinished();
             if (m_hasError) {
                 return ret;
             }
         }
 
-        QList<QVariant> args = m_reply.reply().arguments();
+        QList<QVariant> args = reply().arguments();
 
         switch (args.size()) {
             case 8:
@@ -205,8 +205,7 @@ DBusObject::DBusObject(QObject* parent, QString service, QString path, const cha
 :QDBusAbstractInterface(service, path, interface, detectConnection(addr), parent)
 {
         if (!isValid()) {
-            qDebug() << "Warning: Failed Build DBusObject: " << lastError();
-	    return;
+            qDebug() << "The remote dbus object may not exists, try launch it. " << lastError();
         }
 	connection().connect(this->service(), this->path(), "org.freedesktop.DBus.Properties",  "PropertiesChanged",
 	    "sa{sv}as", this, SLOT(propertyChanged(QDBusMessage)));
