@@ -65,6 +65,15 @@ func Destroy{{ExportName}}(obj *{{ExportName}}) {
 		getBus().DetachSignal(ch)
 	}
 	obj.signalsLocker.Unlock()
+
+	getBus().BusObject().Call("org.freedesktop.DBus.RemoveMatch", 0, "type='signal',path='"+string(obj.Path)+"',interface='org.freedesktop.DBus.Properties',sender='"+obj.DestName+"',member='PropertiesChanged'")
+	getBus().BusObject().Call("org.freedesktop.DBus.RemoveMatch", 0, "type='signal',path='"+string(obj.Path)+"',interface='{{IfcName}}',sender='"+obj.DestName+"',member='PropertiesChanged'")
+
+{{range .Signals}}
+	getBus().BusObject().Call("org.freedesktop.DBus.RemoveMatch", 0,
+		"type='signal',path='"+string({{OBJ_NAME}}.Path)+"', interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
+{{end}}
+
 	{{range .Properties}}
 	obj.{{.Name}}.Reset(){{end}}
 }
