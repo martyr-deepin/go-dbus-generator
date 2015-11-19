@@ -4,8 +4,17 @@ var __GLOBAL_TEMPLATE_GoLang = `
 package {{PkgName}}
 import "pkg.deepin.io/lib/dbus"
 import "fmt"
+import "sync"
+
 var __conn *dbus.Conn = nil
+var __connLock sync.Mutex
+
+var __objCounter map[string]int = nil
+var __objCounterLock sync.Mutex
+
 func getBus() *dbus.Conn {
+	__connLock.Lock()
+	defer __connLock.Unlock()
 	if __conn  == nil {
 		var err error
 		__conn, err = dbus.{{BusType}}Bus()
@@ -16,12 +25,53 @@ func getBus() *dbus.Conn {
 	return __conn
 }
 
+func getObjCounter() map[string]int {
+	__objCounterLock.Lock()
+	defer __objCounterLock.Unlock()
+	if __objCounter == nil {
+		__objCounter = make(map[string]int)
+	}
+	return __objCounter
+}
+
 func dbusCall(method string, flags dbus.Flags, args ...interface{}) (err error) {
 	err = getBus().BusObject().Call(method, flags, args...).Err
 	if err != nil {
 		fmt.Println(err)
 	}
 	return
+}
+
+func dbusAddMatch(rule string) (err error) {
+	return dbusCall("org.freedesktop.DBus.AddMatch", 0, rule)
+}
+
+func dbusRemoveMatch(rule string) (err error) {
+	return dbusCall("org.freedesktop.DBus.RemoveMatch", 0, rule)
+}
+
+func incObjCount(objName string) {
+	objCounter := getObjCounter()
+
+	__objCounterLock.Lock()
+	defer __objCounterLock.Unlock()
+	objCounter[objName]++
+}
+
+func decObjCount(objName string) (cleanRules bool) {
+	objCounter := getObjCounter()
+
+	__objCounterLock.Lock()
+	defer __objCounterLock.Unlock()
+	if _, ok := objCounter[objName]; !ok {
+		return false
+	}
+	objCounter[objName]--
+	if objCounter[objName] == 0 {
+		delete(objCounter, objName)
+		return true
+	}
+	return false
 }
 `
 
@@ -70,18 +120,25 @@ func ({{OBJ_NAME}} *{{ExportName}}) _deleteSignalChan(ch <-chan *dbus.Signal) {
 }
 func Destroy{{ExportName}}(obj *{{ExportName}}) {
 	obj.signalsLocker.Lock()
+	defer obj.signalsLocker.Unlock()
+	if obj.signals == nil {
+		return
+	}
 	for ch, _ := range obj.signals {
 		getBus().DetachSignal(ch)
 	}
-	obj.signalsLocker.Unlock()
+	obj.signals = nil
 
-	dbusCall("org.freedesktop.DBus.RemoveMatch", 0, "type='signal',path='"+string(obj.Path)+"',interface='org.freedesktop.DBus.Properties',sender='"+obj.DestName+"',member='PropertiesChanged'")
-	dbusCall("org.freedesktop.DBus.RemoveMatch", 0, "type='signal',path='"+string(obj.Path)+"',interface='{{IfcName}}',sender='"+obj.DestName+"',member='PropertiesChanged'")
+	runtime.SetFinalizer(obj, nil)
+
+	if decObjCount("{{ExportName}}") {
+		dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='org.freedesktop.DBus.Properties',sender='"+obj.DestName+"',member='PropertiesChanged'")
+		dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='{{IfcName}}',sender='"+obj.DestName+"',member='PropertiesChanged'")
 
 {{range .Signals}}
-	dbusCall("org.freedesktop.DBus.RemoveMatch", 0,
-		"type='signal',path='"+string({{OBJ_NAME}}.Path)+"', interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
+		dbusRemoveMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
 {{end}}
+	}
 
 	{{range .Properties}}
 	obj.{{.Name}}.Reset(){{end}}
@@ -101,8 +158,7 @@ func ({{OBJ_NAME}} *{{ExportName }}) {{Normalize .Name}} ({{GetParamterInsProto 
 
 {{range .Signals}}
 func ({{OBJ_NAME}} *{{ExportName}}) Connect{{.Name}}(callback func({{GetParamterOutsProto .Args}})) func() {
-	dbusCall("org.freedesktop.DBus.AddMatch", 0,
-		"type='signal',path='"+string({{OBJ_NAME}}.Path)+"', interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
+	dbusAddMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
 	sigChan := {{OBJ_NAME}}._createSignalChan()
 	go func() {
 		for v := range(sigChan) {
@@ -174,8 +230,8 @@ func New{{ExportName}}(destName string, path dbus.ObjectPath) (*{{ExportName}}, 
 	{{range .Properties}}
 	obj.{{.Name}} = &dbusProperty{{ExportName}}{{.Name}}{&property.BaseObserver{}, core}{{end}}
 {{with .Properties}}
-	dbusCall("org.freedesktop.DBus.AddMatch", 0, "type='signal',path='"+string(path)+"',interface='org.freedesktop.DBus.Properties',sender='"+destName+"',member='PropertiesChanged'")
-	dbusCall("org.freedesktop.DBus.AddMatch", 0, "type='signal',path='"+string(path)+"',interface='{{IfcName}}',sender='"+destName+"',member='PropertiesChanged'")
+	dbusAddMatch("type='signal',path='"+string(path)+"',interface='org.freedesktop.DBus.Properties',sender='"+destName+"',member='PropertiesChanged'")
+	dbusAddMatch("type='signal',path='"+string(path)+"',interface='{{IfcName}}',sender='"+destName+"',member='PropertiesChanged'")
 	sigChan := obj._createSignalChan()
 	go func() {
 		typeString := reflect.TypeOf("")
@@ -206,7 +262,8 @@ func New{{ExportName}}(destName string, path dbus.ObjectPath) (*{{ExportName}}, 
 		}
 	}()
 {{end}}
-{{if or .Properties .Signals}}runtime.SetFinalizer(obj, func(_obj *{{ExportName}}) { Destroy{{ExportName}}(_obj) }){{end}}
+{{if or .Properties .Signals}}runtime.SetFinalizer(obj, func(_obj *{{ExportName}}) { Destroy{{ExportName}}(_obj) })
+	incObjCount("{{ExportName}}"){{end}}
 	return obj, nil
 }
 
