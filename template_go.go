@@ -9,13 +9,13 @@ import "sync"
 var __conn *dbus.Conn = nil
 var __connLock sync.Mutex
 
-var __objCounter map[string]int = nil
-var __objCounterLock sync.Mutex
+var __ruleCounter map[string]int = nil
+var __ruleCounterLock sync.Mutex
 
 func getBus() *dbus.Conn {
 	__connLock.Lock()
 	defer __connLock.Unlock()
-	if __conn  == nil {
+	if __conn == nil {
 		var err error
 		__conn, err = dbus.{{BusType}}Bus()
 		if err != nil {
@@ -25,13 +25,13 @@ func getBus() *dbus.Conn {
 	return __conn
 }
 
-func getObjCounter() map[string]int {
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	if __objCounter == nil {
-		__objCounter = make(map[string]int)
+func getRuleCounter() map[string]int {
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if __ruleCounter == nil {
+		__ruleCounter = make(map[string]int)
 	}
-	return __objCounter
+	return __ruleCounter
 }
 
 func dbusCall(method string, flags dbus.Flags, args ...interface{}) (err error) {
@@ -43,35 +43,31 @@ func dbusCall(method string, flags dbus.Flags, args ...interface{}) (err error) 
 }
 
 func dbusAddMatch(rule string) (err error) {
-	return dbusCall("org.freedesktop.DBus.AddMatch", 0, rule)
+	ruleCounter := getRuleCounter()
+
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if _, ok := ruleCounter[rule]; !ok {
+		err = dbusCall("org.freedesktop.DBus.AddMatch", 0, rule)
+	}
+	ruleCounter[rule]++
+	return
 }
 
 func dbusRemoveMatch(rule string) (err error) {
-	return dbusCall("org.freedesktop.DBus.RemoveMatch", 0, rule)
-}
+	ruleCounter := getRuleCounter()
 
-func incObjCount(objName string) {
-	objCounter := getObjCounter()
-
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	objCounter[objName]++
-}
-
-func decObjCount(objName string) (cleanRules bool) {
-	objCounter := getObjCounter()
-
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	if _, ok := objCounter[objName]; !ok {
-		return false
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if _, ok := ruleCounter[rule]; !ok {
+		return
 	}
-	objCounter[objName]--
-	if objCounter[objName] == 0 {
-		delete(objCounter, objName)
-		return true
+	ruleCounter[rule]--
+	if ruleCounter[rule] == 0 {
+		delete(ruleCounter, rule)
+		err = dbusCall("org.freedesktop.DBus.RemoveMatch", 0, rule)
 	}
-	return false
+	return
 }
 `
 
@@ -131,15 +127,11 @@ func Destroy{{ExportName}}(obj *{{ExportName}}) {
 
 	runtime.SetFinalizer(obj, nil)
 
-	if decObjCount("{{ExportName}}") {
-		dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='org.freedesktop.DBus.Properties',sender='"+obj.DestName+"',member='PropertiesChanged'")
-		dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='{{IfcName}}',sender='"+obj.DestName+"',member='PropertiesChanged'")
-
+	dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='org.freedesktop.DBus.Properties',sender='"+obj.DestName+"',member='PropertiesChanged'")
+	dbusRemoveMatch("type='signal',path='"+string(obj.Path)+"',interface='{{IfcName}}',sender='"+obj.DestName+"',member='PropertiesChanged'")
 {{range .Signals}}
-		dbusRemoveMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
+	dbusRemoveMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
 {{end}}
-	}
-
 	{{range .Properties}}
 	obj.{{.Name}}.Reset(){{end}}
 }
@@ -158,7 +150,6 @@ func ({{OBJ_NAME}} *{{ExportName }}) {{Normalize .Name}} ({{GetParamterInsProto 
 
 {{range .Signals}}
 func ({{OBJ_NAME}} *{{ExportName}}) Connect{{.Name}}(callback func({{GetParamterOutsProto .Args}})) func() {
-	dbusAddMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
 	sigChan := {{OBJ_NAME}}._createSignalChan()
 	go func() {
 		for v := range(sigChan) {
@@ -262,8 +253,10 @@ func New{{ExportName}}(destName string, path dbus.ObjectPath) (*{{ExportName}}, 
 		}
 	}()
 {{end}}
-{{if or .Properties .Signals}}runtime.SetFinalizer(obj, func(_obj *{{ExportName}}) { Destroy{{ExportName}}(_obj) })
-	incObjCount("{{ExportName}}"){{end}}
+{{range .Signals}}
+	dbusAddMatch("type='signal',path='"+string({{OBJ_NAME}}.Path)+"',interface='{{IfcName}}',sender='"+{{OBJ_NAME}}.DestName+"',member='{{.Name}}'")
+{{end}}
+{{if or .Properties .Signals}}runtime.SetFinalizer(obj, func(_obj *{{ExportName}}) { Destroy{{ExportName}}(_obj) }){{end}}
 	return obj, nil
 }
 

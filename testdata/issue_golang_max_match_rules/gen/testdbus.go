@@ -53,19 +53,15 @@ func DestroyTestDBus(obj *TestDBus) {
 
 	runtime.SetFinalizer(obj, nil)
 
-	if decObjCount("TestDBus") {
-		dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='org.freedesktop.DBus.Properties',sender='" + obj.DestName + "',member='PropertiesChanged'")
-		dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='PropertiesChanged'")
+	dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='org.freedesktop.DBus.Properties',sender='" + obj.DestName + "',member='PropertiesChanged'")
+	dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='PropertiesChanged'")
 
-		dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='TimerSignal'")
-
-	}
+	dbusRemoveMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='TimerSignal'")
 
 	obj.TimerProp.Reset()
 }
 
 func (obj *TestDBus) ConnectTimerSignal(callback func(arg0 string)) func() {
-	dbusAddMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='TimerSignal'")
 	sigChan := obj._createSignalChan()
 	go func() {
 		for v := range sigChan {
@@ -153,7 +149,8 @@ func NewTestDBus(destName string, path dbus.ObjectPath) (*TestDBus, error) {
 		}
 	}()
 
+	dbusAddMatch("type='signal',path='" + string(obj.Path) + "',interface='com.deepin.TestDBus',sender='" + obj.DestName + "',member='TimerSignal'")
+
 	runtime.SetFinalizer(obj, func(_obj *TestDBus) { DestroyTestDBus(_obj) })
-	incObjCount("TestDBus")
 	return obj, nil
 }

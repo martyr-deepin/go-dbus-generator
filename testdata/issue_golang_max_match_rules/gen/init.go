@@ -7,8 +7,8 @@ import "sync"
 var __conn *dbus.Conn = nil
 var __connLock sync.Mutex
 
-var __objCounter map[string]int = nil
-var __objCounterLock sync.Mutex
+var __ruleCounter map[string]int = nil
+var __ruleCounterLock sync.Mutex
 
 func getBus() *dbus.Conn {
 	__connLock.Lock()
@@ -23,13 +23,13 @@ func getBus() *dbus.Conn {
 	return __conn
 }
 
-func getObjCounter() map[string]int {
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	if __objCounter == nil {
-		__objCounter = make(map[string]int)
+func getRuleCounter() map[string]int {
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if __ruleCounter == nil {
+		__ruleCounter = make(map[string]int)
 	}
-	return __objCounter
+	return __ruleCounter
 }
 
 func dbusCall(method string, flags dbus.Flags, args ...interface{}) (err error) {
@@ -41,33 +41,29 @@ func dbusCall(method string, flags dbus.Flags, args ...interface{}) (err error) 
 }
 
 func dbusAddMatch(rule string) (err error) {
-	return dbusCall("org.freedesktop.DBus.AddMatch", 0, rule)
+	ruleCounter := getRuleCounter()
+
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if _, ok := ruleCounter[rule]; !ok {
+		err = dbusCall("org.freedesktop.DBus.AddMatch", 0, rule)
+	}
+	ruleCounter[rule]++
+	return
 }
 
 func dbusRemoveMatch(rule string) (err error) {
-	return dbusCall("org.freedesktop.DBus.RemoveMatch", 0, rule)
-}
+	ruleCounter := getRuleCounter()
 
-func incObjCount(objName string) {
-	objCounter := getObjCounter()
-
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	objCounter[objName]++
-}
-
-func decObjCount(objName string) (cleanRules bool) {
-	objCounter := getObjCounter()
-
-	__objCounterLock.Lock()
-	defer __objCounterLock.Unlock()
-	if _, ok := objCounter[objName]; !ok {
-		return false
+	__ruleCounterLock.Lock()
+	defer __ruleCounterLock.Unlock()
+	if _, ok := ruleCounter[rule]; !ok {
+		return
 	}
-	objCounter[objName]--
-	if objCounter[objName] == 0 {
-		delete(objCounter, objName)
-		return true
+	ruleCounter[rule]--
+	if ruleCounter[rule] == 0 {
+		delete(ruleCounter, rule)
+		err = dbusCall("org.freedesktop.DBus.RemoveMatch", 0, rule)
 	}
-	return false
+	return
 }
