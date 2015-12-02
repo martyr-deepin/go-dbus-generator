@@ -190,20 +190,19 @@ func (this *dbusProperty{{ExportName}}{{.Name}}) SetValue(notwritable interface{
 }{{end}}
 {{ $convert := TryConvertObjectPath . }}
 func (this *dbusProperty{{ExportName}}{{.Name}}) Get() {{GetObjectPathType .}} {
-	return this.GetValue().({{GetObjectPathType .}})
+	v, _ := this.GetValue()
+	return v.({{GetObjectPathType .}})
 }
-func (this *dbusProperty{{ExportName}}{{.Name}}) GetValue() interface{} /*{{GetObjectPathType .}}*/ {
+func (this *dbusProperty{{ExportName}}{{.Name}}) GetValue() (interface{} /*{{GetObjectPathType .}}*/, error) {
 	var r dbus.Variant
 	err := this.core.Call("org.freedesktop.DBus.Properties.Get", 0, "{{IfcName}}", "{{.Name}}").Store(&r)
 	if err == nil && r.Signature().String() == "{{.Type}}" { {{ if $convert }}
 		before := r.Value().({{TypeFor .Type}})
 		{{$convert}}
 		return after{{else}}
-		return r.Value().({{TypeFor .Type}}){{end}}
-	}  else {
-		fmt.Println("dbusProperty:{{.Name}} error:", err, "at {{IfcName}}")
-		return *new({{TypeFor .Type}})
+		return r.Value().({{TypeFor .Type}}){{end}}, nil
 	}
+	return *new({{TypeFor .Type}}), err
 }
 func (this *dbusProperty{{ExportName}}{{.Name}}) GetType() reflect.Type {
 	return reflect.TypeOf((*{{TypeFor .Type}})(nil)).Elem()
