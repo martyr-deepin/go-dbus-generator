@@ -1,0 +1,16 @@
+{
+	"Config": {
+		"OutputDir": "gen",
+		"InputDir": ".",
+		"BusType": "Session",
+		"DestName": "com.deepin.TestDBus"
+	},
+	"Interfaces": [
+		{
+			"Interface": "com.deepin.TestDBus",
+			"OutFile": "testdbus",
+			"XMLFile": "dbus.xml",
+			"ObjectName": "TestDBus"
+		}
+	]
+}

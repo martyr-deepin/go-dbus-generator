@@ -1,0 +1,6 @@
+dbus-generator.test
+dbus-generator
+**/*.test
+
+debian
+

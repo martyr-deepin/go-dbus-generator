@@ -1,0 +1,8 @@
+<node>
+<interface name="com.deepin.TestDBus">
+  <signal name="TimerSignal">
+    <arg type="s"></arg>
+  </signal>
+  <property name="TimerProp" type="s" access="read"></property>
+</interface>
+</node>
