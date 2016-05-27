@@ -6,8 +6,7 @@ build: *.go
 	go build -o dbus-generator
 
 install: build
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	cp dbus-generator ${DESTDIR}${PREFIX}/bin
+	install -Dm755 dbus-generator ${DESTDIR}${PREFIX}/bin/dbus-generator
 
 test-golang-max-match-rules: build
 	cd testdata/issue_golang_max_match_rules/; rm -rf gen; ../../dbus-generator -target GoLang; go test
